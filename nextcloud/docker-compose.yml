@@ -77,15 +77,7 @@ services:
 
 networks:
   nextcloud-frontend:
-    driver: bridge
     external: true
-    ipam:
-      config:
-        - subnet: 172.20.0.0/24
 
   nextcloud-backend:
-    driver: bridge
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.21.0.0/24
+    external: true
