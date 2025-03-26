@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:28.0.4
+    container_name: nextcloud
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - PHP_MEMORY_LIMIT=512M
+      - PHP_UPLOAD_LIMIT=10G
+    volumes:
+      - /mnt/shared/data/config:/config
+      - /mnt/shared/data:/data
+    ports:
+      - 443:443
+    restart: unless-stopped
+    networks:
+      - nextcloud-network
+      - dbnet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mariadb:
+    image: linuxserver/mariadb:11.3.2
+    container_name: mariadb
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - MYSQL_INNODB_BUFFER_POOL_SIZE=256M
+      - MYSQL_INNODB_LOG_FILE_SIZE=128M
+      - MYSQL_MAX_CONNECTIONS=200
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=${DB_USER_PASSWORD}
+    volumes:
+      - /mnt/shared/data/db:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - dbnet
+
+  cloudflared-nextcloud:
+    image: cloudflare/cloudflared:2024.5.0
+    container_name: cloudflared-nextcloud
+    restart: always
+    command: >
+      tunnel --no-autoupdate run --token ${CLOUDFLARE_TOKEN}
+    networks:
+      - nextcloud-network
+
+  cloudflared-collabora:
+    image: cloudflare/cloudflared:2024.5.0
+    container_name: cloudflared-collabora
+    restart: always
+    command: >
+      tunnel --no-autoupdate run --token ${CLOUDFLARE_COLLABORA_TOKEN}
+    networks:
+      - nextcloud-network
+
+  collabora:
+    image: collabora/code:24.05.1.3.1
+    container_name: collabora
+    restart: always
+    environment:
+      - password=${COLLABORA_PASSWORD}
+      - username=admin
+      - domain=doc.silkandcypress.us
+      - server_name=office.silkandcypress.us
+    networks:
+      - nextcloud-network
+
+networks:
+  nextcloud-network:
+    external: true
+    name: nextcloud-network
+  dbnet:
+    internal: true
+    external: true
+    name: dbnet
