@@ -40,7 +40,7 @@ services:
       - MYSQL_USER=nextcloud
       - MYSQL_PASSWORD=${DB_USER_PASSWORD}
     volumes:
-      - /mnt/shared/data/db:/var/lib/mysql
+      - /mnt/shared/data/metadata:/var/lib/mysql
     restart: unless-stopped
     networks:
       - nextcloud-backend
