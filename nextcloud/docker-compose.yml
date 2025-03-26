@@ -17,8 +17,8 @@ services:
       - 443:443
     restart: unless-stopped
     networks:
-      - nextcloud-network
-      - dbnet
+      - nextcloud-frontend
+      - nextcloud-backend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/login"]
       interval: 30s
@@ -43,7 +43,7 @@ services:
       - /mnt/shared/data/db:/var/lib/mysql
     restart: unless-stopped
     networks:
-      - dbnet
+      - nextcloud-backend
 
   cloudflared-nextcloud:
     image: cloudflare/cloudflared:2025.2.1
@@ -52,7 +52,7 @@ services:
     command: >
       tunnel --no-autoupdate run --token ${CLOUDFLARE_TOKEN}
     networks:
-      - nextcloud-network
+      - nextcloud-frontend
 
   cloudflared-collabora:
     image: cloudflare/cloudflared:2025.2.1
@@ -61,7 +61,7 @@ services:
     command: >
       tunnel --no-autoupdate run --token ${CLOUDFLARE_COLLABORA_TOKEN}
     networks:
-      - nextcloud-network
+      - nextcloud-frontend
 
   collabora:
     image: collabora/code:24.04.13.2.1
@@ -73,13 +73,19 @@ services:
       - domain=doc.silkandcypress.us
       - server_name=office.silkandcypress.us
     networks:
-      - nextcloud-network
+      - nextcloud-frontend
 
 networks:
-  nextcloud-network:
+  nextcloud-frontend:
+    driver: bridge
     external: true
-    name: nextcloud-network
-  dbnet:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  nextcloud-backend:
+    driver: bridge
     internal: true
-    external: true
-    name: dbnet
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
