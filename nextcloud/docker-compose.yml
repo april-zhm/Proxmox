@@ -11,19 +11,16 @@ services:
       - PHP_MEMORY_LIMIT=512M
       - PHP_UPLOAD_LIMIT=10G
     volumes:
-      - /mnt/shared/config:/config
-      - /mnt/shared/data:/data
+      - /mnt/host_storage/nextcloud/config:/config 
+      - /mnt/host_storage/nextcloud/data:/data 
     ports:
       - 443:443
     restart: unless-stopped
     networks:
       - nextcloud-frontend
       - nextcloud-backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/login"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    depends_on:
+      - mariadb
 
   mariadb:
     image: lscr.io/linuxserver/mariadb:11.4.5
@@ -32,34 +29,22 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
-      - MYSQL_INNODB_BUFFER_POOL_SIZE=256M
-      - MYSQL_INNODB_LOG_FILE_SIZE=128M
-      - MYSQL_MAX_CONNECTIONS=200
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=nextcloud
       - MYSQL_USER=nextcloud
       - MYSQL_PASSWORD=${DB_USER_PASSWORD}
     volumes:
-      - /mnt/shared/nc_metadata:/var/lib/mysql
+      - /mnt/host_storage/nextcloud/nc_metadata:/var/lib/mysql
     restart: unless-stopped
     networks:
       - nextcloud-backend
 
   cloudflared-nextcloud:
     image: cloudflare/cloudflared:2025.2.1
-    container_name: cloudflared-nextcloud
+    container_name: cloudflared
     restart: always
     command: >
       tunnel --no-autoupdate run --token ${CLOUDFLARE_TOKEN}
-    networks:
-      - nextcloud-frontend
-
-  cloudflared-collabora:
-    image: cloudflare/cloudflared:2025.2.1
-    container_name: cloudflared-collabora
-    restart: always
-    command: >
-      tunnel --no-autoupdate run --token ${CLOUDFLARE_COLLABORA_TOKEN}
     networks:
       - nextcloud-frontend
 
